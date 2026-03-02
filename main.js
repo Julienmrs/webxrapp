@@ -4,7 +4,7 @@
 // Any changes made here will be overwritten.
 // Import only what you need, to help your bundler optimize final code size using tree shaking
 // see https://developer.mozilla.org/en-US/docs/Glossary/Tree_shaking)
-import { AmbientLight, Timer, CylinderGeometry, HemisphereLight, Mesh, MeshPhongMaterial, PerspectiveCamera, Scene, WebGLRenderer } from 'three';
+import { AmbientLight, Timer, CylinderGeometry, HemisphereLight, Mesh, MeshNormalMaterial, MeshPhongMaterial, PerspectiveCamera, Scene, WebGLRenderer } from 'three';
 // XR
 import { XRButton } from 'three/addons/webxr/XRButton.js';
 // If you prefer to import the whole library, with the THREE prefix, use the following line instead:
@@ -30,16 +30,11 @@ import { ARButton } from 'three/addons/webxr/ARButton.js';
 // const MODEL_PATH = 'https://raw.githubusercontent.com/mrdoob/three.js/r173/examples/models/gltf/LeePerrySmith/LeePerrySmith.glb';
 // INSERT CODE HERE
 let camera, scene, renderer;
+let reticle;
+let hitTestSource = null;
+let hitTestSourceRequested = false;
 const timer = new Timer();
 timer.connect(document);
-// Main loop
-const animate = () => {
-    timer.update();
-    const delta = timer.getDelta();
-    const elapsed = timer.getElapsed();
-    // can be used in shaders: uniforms.u_time.value = elapsed;
-    renderer.render(scene, camera);
-};
 const init = () => {
     scene = new Scene();
     const aspect = window.innerWidth / window.innerHeight;
@@ -72,19 +67,71 @@ const init = () => {
     controls.update();
     // Handle input: see THREE.js webxr_ar_cones
     const geometry = new CylinderGeometry(0, 0.05, 0.2, 32).rotateX(Math.PI / 2);
-    const onSelect = (event) => {
-        const material = new MeshPhongMaterial({ color: 0xffffff * Math.random() });
-        const mesh = new Mesh(geometry, material);
-        mesh.position.set(0, 0, -0.3).applyMatrix4(controller.matrixWorld);
-        mesh.quaternion.setFromRotationMatrix(controller.matrixWorld);
-        scene.add(mesh);
-    };
+    const material = new MeshNormalMaterial();
+    reticle = new Mesh(geometry, material);
+    reticle.matrixAutoUpdate = false;
+    reticle.visible = false;
+    scene.add(reticle);
     const controller = renderer.xr.getController(0);
     controller.addEventListener('select', onSelect);
     scene.add(controller);
     window.addEventListener('resize', onWindowResize, false);
 };
 init();
+const geometry = new CylinderGeometry(0.1, 0.1, 0.2, 32).translate(0, 0.1, 0);
+function onSelect() {
+    if (reticle.visible) {
+        const material = new MeshPhongMaterial({ color: 0xffffff * Math.random() });
+        const mesh = new Mesh(geometry, material);
+        reticle.matrix.decompose(mesh.position, mesh.quaternion, mesh.scale);
+        mesh.scale.y = Math.random() * 2 + 1;
+        scene.add(mesh);
+    }
+}
+timer.update();
+const delta = timer.getDelta();
+const elapsed = timer.getElapsed();
+function animate(_timestamp, frame) {
+    if (frame) {
+        const referenceSpace = renderer.xr.getReferenceSpace();
+        const session = renderer.xr.getSession();
+        if (hitTestSourceRequested === false && session) {
+            session.requestReferenceSpace('viewer').then(function (referenceSpace) {
+                if (session.requestHitTestSource) {
+                    const hitTestSourcePromise = session.requestHitTestSource({ space: referenceSpace });
+                    if (hitTestSourcePromise) {
+                        hitTestSourcePromise.then(function (source) {
+                            hitTestSource = source;
+                        });
+                    }
+                }
+            });
+            session.addEventListener('end', function () {
+                hitTestSourceRequested = false;
+                hitTestSource = null;
+            });
+            hitTestSourceRequested = true;
+        }
+        if (hitTestSource && referenceSpace) {
+            const hitTestResults = frame.getHitTestResults(hitTestSource);
+            if (hitTestResults.length) {
+                const hit = hitTestResults[0];
+                const pose = hit.getPose(referenceSpace);
+                if (pose) {
+                    reticle.visible = true;
+                    reticle.matrix.fromArray(pose.transform.matrix);
+                }
+                else {
+                    reticle.visible = false;
+                }
+            }
+            else {
+                reticle.visible = false;
+            }
+        }
+    }
+    renderer.render(scene, camera);
+}
 //
 /*
 function loadData() {

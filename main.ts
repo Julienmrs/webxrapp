@@ -66,22 +66,16 @@ import { XRController } from 'iwer/lib/device/XRController';
 
 // INSERT CODE HERE
 let camera: PerspectiveCamera, scene: Scene, renderer: WebGLRenderer;
+let reticle: Mesh;
+
+let hitTestSource: XRHitTestSource | null = null;
+let hitTestSourceRequested = false;
 
 
 const timer = new Timer();
 timer.connect(document);
 
-// Main loop
-const animate = () => {
 
-  timer.update();
-  const delta = timer.getDelta();
-  const elapsed = timer.getElapsed();
-
-  // can be used in shaders: uniforms.u_time.value = elapsed;
-
-  renderer.render(scene, camera);
-};
 
 
 const init = () => {
@@ -126,15 +120,11 @@ const init = () => {
 
   const geometry = new CylinderGeometry(0, 0.05, 0.2, 32).rotateX(Math.PI / 2);
 
-  const onSelect = (event: any) => {
-
-    const material = new MeshPhongMaterial({ color: 0xffffff * Math.random() });
-    const mesh = new Mesh(geometry, material);
-    mesh.position.set(0, 0, - 0.3).applyMatrix4(controller.matrixWorld);
-    mesh.quaternion.setFromRotationMatrix(controller.matrixWorld);
-    scene.add(mesh);
-
-  }
+  const material = new MeshNormalMaterial();
+  reticle = new Mesh(geometry, material);
+  reticle.matrixAutoUpdate = false;
+  reticle.visible = false;
+  scene.add(reticle);
 
   const controller = renderer.xr.getController(0);
   controller.addEventListener('select', onSelect);
@@ -146,6 +136,68 @@ const init = () => {
 }
 
 init();
+const geometry = new CylinderGeometry(0.1, 0.1, 0.2, 32).translate(0, 0.1, 0);
+function onSelect() {
+
+  if (reticle.visible) {
+
+    const material = new MeshPhongMaterial({ color: 0xffffff * Math.random() });
+    const mesh = new Mesh(geometry, material);
+    reticle.matrix.decompose(mesh.position, mesh.quaternion, mesh.scale);
+    mesh.scale.y = Math.random() * 2 + 1;
+    scene.add(mesh);
+
+  }
+
+}
+
+
+timer.update();
+const delta = timer.getDelta();
+const elapsed = timer.getElapsed();
+
+function animate(_timestamp: number, frame: XRFrame) {
+  if (frame) {
+    const referenceSpace = renderer.xr.getReferenceSpace();
+    const session = renderer.xr.getSession();
+    if (hitTestSourceRequested === false && session) {
+      session.requestReferenceSpace('viewer').then(function (referenceSpace) {
+        if (session.requestHitTestSource) {
+          const hitTestSourcePromise = session.requestHitTestSource({ space: referenceSpace });
+          if (hitTestSourcePromise) {
+            hitTestSourcePromise.then(function (source) {
+              hitTestSource = source;
+            });
+          }
+        }
+
+      });
+      session.addEventListener('end', function () {
+        hitTestSourceRequested = false;
+        hitTestSource = null;
+      });
+      hitTestSourceRequested = true;
+    }
+
+    if (hitTestSource && referenceSpace) {
+      const hitTestResults = frame.getHitTestResults(hitTestSource);
+      if (hitTestResults.length) {
+        const hit = hitTestResults[0];
+        const pose = hit.getPose(referenceSpace);
+        if (pose) {
+          reticle.visible = true;
+          reticle.matrix.fromArray(pose.transform.matrix);
+        } else {
+          reticle.visible = false;
+        }
+      } else {
+        reticle.visible = false;
+      }
+    }
+  }
+  renderer.render(scene, camera);
+}
+
 
 //
 
