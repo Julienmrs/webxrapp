@@ -52,6 +52,7 @@ import {
   OrbitControls
 } from 'three/addons/controls/OrbitControls.js';
 
+import { ARButton } from 'three/addons/webxr/ARButton.js';
 import {
   GLTFLoader
 } from 'three/addons/loaders/GLTFLoader.js';
@@ -64,7 +65,7 @@ import { XRController } from 'iwer/lib/device/XRController';
 
 
 // INSERT CODE HERE
-let camera : PerspectiveCamera, scene : Scene, renderer : WebGLRenderer;
+let camera: PerspectiveCamera, scene: Scene, renderer: WebGLRenderer;
 
 
 const timer = new Timer();
@@ -103,6 +104,7 @@ const init = () => {
   renderer.setAnimationLoop(animate); // requestAnimationFrame() replacement, compatible with XR 
   renderer.xr.enabled = true;
   document.body.appendChild(renderer.domElement);
+  document.body.appendChild(ARButton.createButton(renderer));
 
   /*
   document.body.appendChild( XRButton.createButton( renderer, {
@@ -124,7 +126,7 @@ const init = () => {
 
   const geometry = new CylinderGeometry(0, 0.05, 0.2, 32).rotateX(Math.PI / 2);
 
-  const onSelect = (event : any) => {
+  const onSelect = (event: any) => {
 
     const material = new MeshPhongMaterial({ color: 0xffffff * Math.random() });
     const mesh = new Mesh(geometry, material);

@@ -25,6 +25,7 @@ import { XRButton } from 'three/addons/webxr/XRButton.js';
 // 
 // Consider using alternatives like Oimo or cannon-es
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { ARButton } from 'three/addons/webxr/ARButton.js';
 // Example of hard link to official repo for data, if needed
 // const MODEL_PATH = 'https://raw.githubusercontent.com/mrdoob/three.js/r173/examples/models/gltf/LeePerrySmith/LeePerrySmith.glb';
 // INSERT CODE HERE
@@ -55,6 +56,7 @@ const init = () => {
     renderer.setAnimationLoop(animate); // requestAnimationFrame() replacement, compatible with XR 
     renderer.xr.enabled = true;
     document.body.appendChild(renderer.domElement);
+    document.body.appendChild(ARButton.createButton(renderer));
     /*
     document.body.appendChild( XRButton.createButton( renderer, {
       'optionalFeatures': [ 'depth-sensing' ],

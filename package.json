@@ -11,7 +11,7 @@
     "clean": "rm -rf dist",
     "purge": "npm run clean && rm -rf node_modules",
     "serve": "http-server dist",
-    "cloud": "cloudflared tunnel --url http://localhost:5173/"
+    "cloud": "cloudflared tunnel --protocol http2 --url http://localhost:5173"
   },
   "devDependencies": {
     "@iwsdk/vite-plugin-iwer": "^0.2.2",
@@ -25,6 +25,7 @@
   "dependencies": {
     "@iwer/devui": "^1.1.2",
     "@iwer/sem": "^0.2.5",
+    "cloudflared": "^0.7.1",
     "iwer": "^2.1.0",
     "three": "^0.183.1"
   }
