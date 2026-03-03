@@ -63,59 +63,14 @@ let hitTestSource: XRHitTestSource | null = null;
 let hitTestSourceRequested = false;
 
 let lstPokemon: string[] = [];
-let dummyscale = new Vector3();
-let dummyquaternion = new Quaternion()
 
 let raycaster = new Raycaster();
 let INTERSECTED: any;
 let pointer = new Vector2(0, 0);
 
-
-// const geometry = new BoxGeometry(0.3, 0.3, 0.3);
-// const material = new MeshBasicMaterial({ color: 0x00ff00 });
-// const cube = new Mesh(geometry, material);
-
 let sameTimeNumberPokemon = 8
-
-// const radiusTop: number = 0, radiusBottom: number = 5, height: number = 5, radialSegments: number = sameTimeNumberPokemon, heightSegments: number = 1;
-// const openEnded: boolean = true, thetaStart: number = 0, thetaLength: number = Math.PI * 2;
-// const cGeometry = new CylinderGeometry(
-//   radiusTop, radiusBottom, height, radialSegments,
-//   heightSegments, openEnded, thetaStart, thetaLength)
-// const material = new MeshBasicMaterial({ color: 0xffff00 });
-// const cone = new Mesh(cGeometry, material);
-// const position = cGeometry.attributes.position;
-// console.log(position)
-// let lstPosition = []
-// for (let i = 0; i < position.count; i++) {
-//   let currentPos = position.array.slice(i * 3, i * 3 + 3);
-//   lstPosition.push(new Vector3(currentPos[0], currentPos[1], currentPos[2]));
-// }
-
-const nb_pokemon = 10; // nombre de pokemons
-const radius = 1.5;
-
 const targets: Object3D[] = [];
-const vector = new Vector3();
-
-// for (let i = 0; i < nb_pokemon; i++) {
-
-//   const phi = Math.acos(-1 + (2 * i) / nb_pokemon);
-//   const theta = Math.sqrt(nb_pokemon * Math.PI) * phi;
-
-//   const object = new Object3D();
-
-//   object.position.setFromSphericalCoords(radius, phi, theta);
-
-//   vector.copy(object.position).multiplyScalar(2);
-//   object.lookAt(vector);
-
-//   targets.push(object);
-// }
-// console.log(lstPosition)
-// scene.add( cone );
-
-
+let listModelPokemon: Object3D[] = [];
 
 async function listPokemonLoad(): Promise<string[]> {
   const response = await fetch("assets/lst_pokemon.txt");
@@ -410,9 +365,10 @@ async function spawnPokemonAuto() {
 
       model.lookAt(camera_position);
       scene.add(model);
+      listModelPokemon.push(model)
     }
   }
-
+  console.log(listModelPokemon)
 
 
 }
