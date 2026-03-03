@@ -21,10 +21,13 @@ import {
   HemisphereLight,
   DirectionalLight,
   MeshToonMaterial,
+  Quaternion,
   NearestFilter,
   DataTexture,
   RingGeometry,
   RGBAFormat,
+  SphereGeometry,
+  ConeGeometry,
 } from 'three';
 
 
@@ -43,6 +46,7 @@ import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 
 
 import { ARButton } from 'three/addons/webxr/ARButton.js';
+import { PI } from 'three/tsl';
 
 let container: HTMLDivElement;
 
@@ -59,6 +63,54 @@ let hitTestSource: XRHitTestSource | null = null;
 let hitTestSourceRequested = false;
 
 let lstPokemon: string[] = [];
+let dummyscale = new Vector3();
+let dummyquaternion = new Quaternion()
+
+// const geometry = new BoxGeometry(0.3, 0.3, 0.3);
+// const material = new MeshBasicMaterial({ color: 0x00ff00 });
+// const cube = new Mesh(geometry, material);
+
+let sameTimeNumberPokemon = 8
+
+// const radiusTop: number = 0, radiusBottom: number = 5, height: number = 5, radialSegments: number = sameTimeNumberPokemon, heightSegments: number = 1;
+// const openEnded: boolean = true, thetaStart: number = 0, thetaLength: number = Math.PI * 2;
+// const cGeometry = new CylinderGeometry(
+//   radiusTop, radiusBottom, height, radialSegments,
+//   heightSegments, openEnded, thetaStart, thetaLength)
+// const material = new MeshBasicMaterial({ color: 0xffff00 });
+// const cone = new Mesh(cGeometry, material);
+// const position = cGeometry.attributes.position;
+// console.log(position)
+// let lstPosition = []
+// for (let i = 0; i < position.count; i++) {
+//   let currentPos = position.array.slice(i * 3, i * 3 + 3);
+//   lstPosition.push(new Vector3(currentPos[0], currentPos[1], currentPos[2]));
+// }
+
+const nb_pokemon = 10; // nombre de pokemons
+const radius = 1.5;
+
+const targets: Object3D[] = [];
+const vector = new Vector3();
+
+// for (let i = 0; i < nb_pokemon; i++) {
+
+//   const phi = Math.acos(-1 + (2 * i) / nb_pokemon);
+//   const theta = Math.sqrt(nb_pokemon * Math.PI) * phi;
+
+//   const object = new Object3D();
+
+//   object.position.setFromSphericalCoords(radius, phi, theta);
+
+//   vector.copy(object.position).multiplyScalar(2);
+//   object.lookAt(vector);
+
+//   targets.push(object);
+// }
+// console.log(lstPosition)
+// scene.add( cone );
+
+
 
 async function listPokemonLoad(): Promise<string[]> {
   const response = await fetch("assets/lst_pokemon.txt");
@@ -80,7 +132,6 @@ listPokemonLoad().then(list => {
 init();
 
 function init(): void {
-
   container = document.createElement('div');
   document.body.appendChild(container);
 
@@ -115,39 +166,38 @@ function init(): void {
     })
   );
 
-  const geometry = new CylinderGeometry(0.1, 0.1, 0.2, 32)
-    .translate(0, 0.1, 0);
+  async function onSelect(): Promise<void> {
 
-  function onSelect(): void {
+    if (!reticle.visible) return;
 
-    if (reticle.visible) {
+    const basePosition = new Vector3();
+    const baseQuaternion = new Quaternion();
+    const baseScale = new Vector3();
 
-      const material = new MeshPhongMaterial({
-        color: 0xffffff * Math.random()
-      });
+    reticle.matrix.decompose(basePosition, baseQuaternion, baseScale);
 
-      // const mesh = new Mesh(loadData(), material);
+    for (let i = 0; i < targets.length; i++) {
 
-      const model = loadData()
-      if (model) {
+      const model = await loadData();
+      if (!model) return;
+      const offset = targets[i].position.clone();
+      offset.applyQuaternion(baseQuaternion);
 
-        reticle.matrix.decompose(
-          model.position,
-          model.quaternion,
-          model.scale
-        );
+      model.position.copy(basePosition);
+      let camera_position: Vector3 = new Vector3();
+      camera.getWorldPosition(camera_position);
+      model.lookAt(camera_position)
 
-        scene.add(model);
-      }
+      scene.add(model);
     }
   }
 
   controller1 = renderer.xr.getController(0);
-  (controller1 as any).addEventListener('select', onSelect);
+  (controller1 as any).addEventListener('select', spawnPokemonAuto);
   scene.add(controller1);
 
   controller2 = renderer.xr.getController(1);
-  (controller2 as any).addEventListener('select', onSelect);
+  (controller2 as any).addEventListener('select', spawnPokemonAuto);
   scene.add(controller2);
 
   reticle = new Mesh(
@@ -160,7 +210,7 @@ function init(): void {
   reticle.visible = false;
 
   scene.add(reticle);
-
+  spawnPokemonAuto();
   window.addEventListener('resize', onWindowResize);
 }
 
@@ -237,9 +287,7 @@ function gltfReader(gltf: GLTF) {
     if ((obj as Mesh).isMesh) {
       const mesh = obj as Mesh;
 
-      mesh.material = new MeshBasicMaterial({
-        color: 0x000000
-      });
+
       // mesh.material = originalMaterials.get(mesh)!;
     }
   });
@@ -251,17 +299,24 @@ function gltfReader(gltf: GLTF) {
 
 }
 
-function loadData(): void | Object3D {
+async function loadData(): Promise<Object3D> {
   const idPokemon: string = randomPokemon();
-  if (!idPokemon) return;
-  new GLTFLoader()
-    .setPath('assets/Pokemon_models/' + idPokemon)
-    .setResourcePath('assets/Pokemon_models/' + idPokemon + '/images/')
-    .load('/' + idPokemon.toLowerCase() + '.glb', gltfReader);
-  return pokModel;
+  if (!idPokemon) {
+    console.log("fail");
+    return new Object3D();
+  }
+  return new Promise((resolve) => {
+    new GLTFLoader()
+      .setPath('assets/Pokemon_models/' + idPokemon)
+      .setResourcePath('assets/Pokemon_models/' + idPokemon + '/images/')
+      .load('/' + idPokemon.toLowerCase() + '.glb', (gltf) => {
+        gltfReader(gltf);
+        resolve(pokModel);
+      });
+  });
 }
 
-function convertGLTFModel(gltf: GLTF, maxAllowedSize = 40): Object3D {
+function convertGLTFModel(gltf: GLTF, maxAllowedSize = 0.50): Object3D {
 
   const model = gltf.scene;
 
@@ -280,7 +335,6 @@ function convertGLTFModel(gltf: GLTF, maxAllowedSize = 40): Object3D {
   const newCenter = box.getCenter(new Vector3());
 
   model.position.sub(newCenter);
-
   box.setFromObject(model);
   model.position.y -= box.min.y;
 
@@ -290,7 +344,50 @@ function convertGLTFModel(gltf: GLTF, maxAllowedSize = 40): Object3D {
 function randomPokemon(): string {
 
   const randomIndex = Math.floor(Math.random() * lstPokemon.length);
-  return 'Abra';
+  return lstPokemon[randomIndex];
+}
+
+
+async function spawnPokemonAuto() {
+  console.log("rentré");
+  const nb_pokemon = sameTimeNumberPokemon; // nombre de pokemons
+  const radius = 1.5;                  // rayon de la sphère
+  const targets: Object3D[] = [];
+  const vector = new Vector3();
+
+  let camera_position: Vector3 = new Vector3();
+  camera.getWorldPosition(camera_position);
+
+  for (let i = 0; i < nb_pokemon; i++) {
+    console.log("bcl1");
+
+    const phi = Math.acos(-1 + (2 * i) / nb_pokemon);
+    const theta = Math.sqrt(nb_pokemon * Math.PI) * phi;
+    const object = new Object3D();
+    object.position.setFromSphericalCoords(radius, phi, theta);
+    vector.copy(object.position).multiplyScalar(2);
+    object.lookAt(camera_position);
+    targets.push(object);
+  }
+
+  // console.log(targets);
+
+  for (let j = 0; j < targets.length; j++) {
+    console.log("model" + j);
+
+
+    const model = await loadData()
+    if (model) {
+      model.position.copy(targets[j].position);
+      // console.log(targets[j].position);
+
+      model.lookAt(camera_position);
+      scene.add(model);
+    }
+  }
+
+
+
 }
 
 
