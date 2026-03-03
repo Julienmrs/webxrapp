@@ -66,6 +66,11 @@ let lstPokemon: string[] = [];
 let dummyscale = new Vector3();
 let dummyquaternion = new Quaternion()
 
+let raycaster = new Raycaster();
+let INTERSECTED: any;
+let pointer = new Vector2(0, 0);
+
+
 // const geometry = new BoxGeometry(0.3, 0.3, 0.3);
 // const material = new MeshBasicMaterial({ color: 0x00ff00 });
 // const cube = new Mesh(geometry, material);
@@ -275,6 +280,30 @@ function animate(
         reticle.visible = false;
       }
     }
+
+    // intersection detection
+    raycaster.setFromCamera(pointer, camera);
+
+    const intersects = raycaster.intersectObjects(targets, false);
+
+    if (intersects.length > 0) {
+      if (INTERSECTED != intersects[0].object) {
+
+        if (INTERSECTED) INTERSECTED.material.emissive.setHex(INTERSECTED.currentHex);
+        INTERSECTED = intersects[0].object;
+        INTERSECTED.currentHex = INTERSECTED.material.emissive.getHex();
+        INTERSECTED.material.emissive.setHex(0xff0000);
+      }
+
+    } else {
+
+      if (INTERSECTED) INTERSECTED.material.emissive.setHex(INTERSECTED.currentHex);
+      INTERSECTED = null;
+
+    }
+
+    renderer.render(scene, camera);
+
   }
 
   renderer.render(scene, camera);
@@ -359,8 +388,6 @@ async function spawnPokemonAuto() {
   camera.getWorldPosition(camera_position);
 
   for (let i = 0; i < nb_pokemon; i++) {
-    console.log("bcl1");
-
     const phi = Math.acos(-1 + (2 * i) / nb_pokemon);
     const theta = Math.sqrt(nb_pokemon * Math.PI) * phi;
     const object = new Object3D();
@@ -390,4 +417,8 @@ async function spawnPokemonAuto() {
 
 }
 
+function try_onClick(event: MouseEvent) {
+  raycaster.setFromCamera(pointer, camera);
 
+  const intersects = raycaster.intersectObjects(targets, false);
+}
