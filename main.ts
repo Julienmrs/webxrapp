@@ -376,5 +376,5 @@ async function spawnPokemonAuto() {
 function try_onClick(event: MouseEvent) {
   raycaster.setFromCamera(pointer, camera);
 
-  const intersects = raycaster.intersectObjects(targets, false);
+  const intersects = raycaster.intersectObjects(listModelPokemon, true);
 }
