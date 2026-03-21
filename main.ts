@@ -65,13 +65,27 @@ let hitTestSourceRequested = false;
 let lstPokemon: string[] = [];
 
 let raycaster = new Raycaster();
-let INTERSECTED: any;
+// let INTERSECTED: any;
 let pointer = new Vector2(0, 0);
 
 let sameTimeNumberPokemon = 8
 let targets: Object3D[] = [];
 let listModelPokemon: Object3D[] = [];
 let listModelPokemonNames: String[] = [];
+
+let textMesh: Mesh | null = null;
+let font: Font;
+const loader = new TTFLoader();
+let currentText = "";
+
+function fontLoad() {
+  loader.load('assets/fonts/kenpixel.ttf', function (json) {
+    font = new Font(json);
+    createText("Bienvenue dans le monde de la réalité augmentée !\n Appuyez pour faire apparaître des pokémons !");
+  });
+}
+fontLoad();
+
 
 async function listPokemonLoad(): Promise<string[]> {
   const response = await fetch("assets/lst_pokemon.txt");
@@ -104,6 +118,8 @@ function init(): void {
     0.01,
     20
   );
+
+  scene.add(camera);
 
   const light = new HemisphereLight(0xffffff, 0xbbbbff, 3);
   light.position.set(0.5, 1, 0.25);
@@ -377,6 +393,7 @@ function addBoundingBoxHelper(model: Object3D) {
 function onSelectPokemon() {
   if (listModelPokemon.length === 0) {
     spawnPokemonAuto();
+    createText("");
     return;
   }
   const ray = getCameraRay();
@@ -422,3 +439,37 @@ function getCameraRay(): Raycaster {
   ray.set(origin, direction);
   return ray;
 }
+
+function createText(text: string): void {
+  if (!font) return;
+  if (currentText === text) return;
+  currentText = text;
+  if (textMesh) {
+    camera.remove(textMesh);
+    textMesh.geometry.dispose();
+    const mat = textMesh.material;
+    if (Array.isArray(mat)) {
+      mat.forEach(m => m.dispose());
+    } else {
+      mat.dispose();
+    }
+    textMesh = null;
+  }
+  const geometry = new TextGeometry(text, {
+    font: font,
+    size: 0.035,
+    depth: 0.005,
+    curveSegments: 8,
+  });
+  geometry.computeBoundingBox();
+  const box = geometry.boundingBox;
+  if (box) {
+    const center = box.getCenter(new Vector3());
+    geometry.translate(-center.x, -center.y, -center.z);
+  }
+  const material = new MeshBasicMaterial({ color: 0xffffff });
+  textMesh = new Mesh(geometry, material);
+  textMesh.position.set(0, 0, -0.5); // devant la caméra
+  camera.add(textMesh);
+}
+
