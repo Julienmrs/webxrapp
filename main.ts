@@ -96,7 +96,6 @@ function init(): void {
   document.body.appendChild(container);
 
   scene = new Scene();
-
   camera = new PerspectiveCamera(
     70,
     window.innerWidth / window.innerHeight,
@@ -153,11 +152,11 @@ function init(): void {
   }
 
   controller1 = renderer.xr.getController(0);
-  (controller1 as any).addEventListener('select', spawnPokemonAuto);
+  (controller1 as any).addEventListener('select', onSelectPokemon);
   scene.add(controller1);
 
   controller2 = renderer.xr.getController(1);
-  (controller2 as any).addEventListener('select', spawnPokemonAuto);
+  (controller2 as any).addEventListener('select', onSelectPokemon);
   scene.add(controller2);
 
   reticle = new Mesh(
@@ -168,7 +167,6 @@ function init(): void {
 
   reticle.matrixAutoUpdate = false;
   reticle.visible = false;
-
   scene.add(reticle);
   spawnPokemonAuto();
   window.addEventListener('resize', onWindowResize);
@@ -178,7 +176,6 @@ function onWindowResize(): void {
 
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
@@ -198,7 +195,6 @@ function animate(
 
       session.requestReferenceSpace('viewer')
         .then((viewerSpace) => {
-
           if (viewerSpace) {
             session.requestHitTestSource?.({
               space: viewerSpace
@@ -212,16 +208,12 @@ function animate(
         hitTestSourceRequested = false;
         hitTestSource = null;
       });
-
       hitTestSourceRequested = true;
     }
 
     if (hitTestSource) {
-
       const hitTestResults = frame.getHitTestResults(hitTestSource);
-
       if (hitTestResults.length > 0) {
-
         const hit = hitTestResults[0];
         const pose = hit.getPose(referenceSpace);
 
@@ -231,14 +223,12 @@ function animate(
         }
 
       } else {
-
         reticle.visible = false;
       }
     }
 
     // intersection detection
     raycaster.setFromCamera(pointer, camera);
-
     const intersects = raycaster.intersectObjects(targets, false);
 
     if (intersects.length > 0) {
@@ -251,34 +241,26 @@ function animate(
       }
 
     } else {
-
       if (INTERSECTED) INTERSECTED.material.emissive.setHex(INTERSECTED.currentHex);
       INTERSECTED = null;
-
     }
 
     renderer.render(scene, camera);
-
   }
-
   renderer.render(scene, camera);
 }
-
 
 function gltfReader(gltf: GLTF) {
   const model = convertGLTFModel(gltf, 1);
   model.traverse((obj) => {
     if ((obj as Mesh).isMesh) {
       const mesh = obj as Mesh;
-
-
       // mesh.material = originalMaterials.get(mesh)!;
     }
   });
   model.traverse((obj) => {
     obj.layers.set(1);
   })
-
   pokModel = model;
 
 }
@@ -301,13 +283,10 @@ async function loadData(): Promise<Object3D> {
 }
 
 function convertGLTFModel(gltf: GLTF, maxAllowedSize = 0.50): Object3D {
-
   const model = gltf.scene;
-
   const box = new Box3().setFromObject(model);
   const size = box.getSize(new Vector3());
   const center = box.getCenter(new Vector3());
-
   const maxAxis = Math.max(size.x, size.y, size.z);
 
   if (maxAxis > maxAllowedSize) {
@@ -317,7 +296,6 @@ function convertGLTFModel(gltf: GLTF, maxAllowedSize = 0.50): Object3D {
 
   box.setFromObject(model);
   const newCenter = box.getCenter(new Vector3());
-
   model.position.sub(newCenter);
   box.setFromObject(model);
   model.position.y -= box.min.y;
@@ -326,7 +304,6 @@ function convertGLTFModel(gltf: GLTF, maxAllowedSize = 0.50): Object3D {
 }
 
 function randomPokemon(): string {
-
   const randomIndex = Math.floor(Math.random() * lstPokemon.length);
   return lstPokemon[randomIndex];
 }
@@ -356,8 +333,6 @@ async function spawnPokemonAuto() {
 
   for (let j = 0; j < targets.length; j++) {
     console.log("model" + j);
-
-
     const model = await loadData()
     if (model) {
       model.position.copy(targets[j].position);
@@ -369,9 +344,12 @@ async function spawnPokemonAuto() {
     }
   }
   console.log(listModelPokemon)
-
-
 }
+
+function onSelectPokemon() {
+}
+
+
 
 function try_onClick(event: MouseEvent) {
   raycaster.setFromCamera(pointer, camera);
