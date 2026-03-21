@@ -69,8 +69,9 @@ let INTERSECTED: any;
 let pointer = new Vector2(0, 0);
 
 let sameTimeNumberPokemon = 8
-const targets: Object3D[] = [];
+let targets: Object3D[] = [];
 let listModelPokemon: Object3D[] = [];
+let listModelPokemonNames: String[] = [];
 
 async function listPokemonLoad(): Promise<string[]> {
   const response = await fetch("assets/lst_pokemon.txt");
@@ -94,6 +95,7 @@ init();
 function init(): void {
   container = document.createElement('div');
   document.body.appendChild(container);
+
 
   scene = new Scene();
   camera = new PerspectiveCamera(
@@ -125,31 +127,32 @@ function init(): void {
     })
   );
 
-  async function onSelect(): Promise<void> {
 
-    if (!reticle.visible) return;
+  // async function onSelect(): Promise<void> {
 
-    const basePosition = new Vector3();
-    const baseQuaternion = new Quaternion();
-    const baseScale = new Vector3();
+  //   if (!reticle.visible) return;
 
-    reticle.matrix.decompose(basePosition, baseQuaternion, baseScale);
+  //   const basePosition = new Vector3();
+  //   const baseQuaternion = new Quaternion();
+  //   const baseScale = new Vector3();
 
-    for (let i = 0; i < targets.length; i++) {
+  //   reticle.matrix.decompose(basePosition, baseQuaternion, baseScale);
 
-      const model = await loadData();
-      if (!model) return;
-      const offset = targets[i].position.clone();
-      offset.applyQuaternion(baseQuaternion);
+  //   for (let i = 0; i < targets.length; i++) {
 
-      model.position.copy(basePosition);
-      let camera_position: Vector3 = new Vector3();
-      camera.getWorldPosition(camera_position);
-      model.lookAt(camera_position)
+  //     const model = await loadData();
+  //     if (!model) return;
+  //     const offset = targets[i].position.clone();
+  //     offset.applyQuaternion(baseQuaternion);
 
-      scene.add(model);
-    }
-  }
+  //     model.position.copy(basePosition);
+  //     let camera_position: Vector3 = new Vector3();
+  //     camera.getWorldPosition(camera_position);
+  //     model.lookAt(camera_position)
+
+  //     scene.add(model);
+  //   }
+  // }
 
   controller1 = renderer.xr.getController(0);
   (controller1 as any).addEventListener('select', onSelectPokemon);
@@ -168,7 +171,7 @@ function init(): void {
   reticle.matrixAutoUpdate = false;
   reticle.visible = false;
   scene.add(reticle);
-  spawnPokemonAuto();
+  // spawnPokemonAuto();
   window.addEventListener('resize', onWindowResize);
 }
 
@@ -229,21 +232,24 @@ function animate(
 
     // intersection detection
     raycaster.setFromCamera(pointer, camera);
-    const intersects = raycaster.intersectObjects(targets, false);
-
+    const intersects = raycaster.intersectObjects(listModelPokemon, true);
     if (intersects.length > 0) {
-      if (INTERSECTED != intersects[0].object) {
-
-        if (INTERSECTED) INTERSECTED.material.emissive.setHex(INTERSECTED.currentHex);
-        INTERSECTED = intersects[0].object;
-        INTERSECTED.currentHex = INTERSECTED.material.emissive.getHex();
-        INTERSECTED.material.emissive.setHex(0xff0000);
-      }
-
-    } else {
-      if (INTERSECTED) INTERSECTED.material.emissive.setHex(INTERSECTED.currentHex);
-      INTERSECTED = null;
+      const pokemon = getPokemon(intersects[0].object);
     }
+
+    // if (intersects.length > 0) {
+    //   if (INTERSECTED != intersects[0].object) {
+
+    //     if (INTERSECTED) INTERSECTED.material.emissive.setHex(INTERSECTED.currentHex);
+    //     INTERSECTED = intersects[0].object;
+    //     INTERSECTED.currentHex = INTERSECTED.material.emissive.getHex();
+    //     INTERSECTED.material.emissive.setHex(0xff0000);
+    //   }
+
+    // } else {
+    //   if (INTERSECTED) INTERSECTED.material.emissive.setHex(INTERSECTED.currentHex);
+    //   INTERSECTED = null;
+    // }
 
     renderer.render(scene, camera);
   }
@@ -265,11 +271,11 @@ function gltfReader(gltf: GLTF) {
 
 }
 
-async function loadData(): Promise<Object3D> {
+async function loadData(): Promise<{ model: Object3D, name: string }> {
   const idPokemon: string = randomPokemon();
   if (!idPokemon) {
     console.log("fail");
-    return new Object3D();
+    return { model: new Object3D(), name: "" };
   }
   return new Promise((resolve) => {
     new GLTFLoader()
@@ -277,7 +283,10 @@ async function loadData(): Promise<Object3D> {
       .setResourcePath('assets/Pokemon_models/' + idPokemon + '/images/')
       .load('/' + idPokemon.toLowerCase() + '.glb', (gltf) => {
         gltfReader(gltf);
-        resolve(pokModel);
+        resolve({
+          model: pokModel,
+          name: idPokemon
+        });
       });
   });
 }
@@ -304,7 +313,10 @@ function convertGLTFModel(gltf: GLTF, maxAllowedSize = 0.50): Object3D {
 }
 
 function randomPokemon(): string {
-  const randomIndex = Math.floor(Math.random() * lstPokemon.length);
+  let randomIndex = Math.floor(Math.random() * lstPokemon.length);
+  while (randomIndex in listModelPokemonNames) {
+    randomIndex = Math.floor(Math.random() * lstPokemon.length);
+  }
   return lstPokemon[randomIndex];
 }
 
@@ -313,7 +325,7 @@ async function spawnPokemonAuto() {
   console.log("rentré");
   const nb_pokemon = sameTimeNumberPokemon; // nombre de pokemons
   const radius = 1.5;                  // rayon de la sphère
-  const targets: Object3D[] = [];
+  targets = [];
   const vector = new Vector3();
 
   let camera_position: Vector3 = new Vector3();
@@ -329,30 +341,63 @@ async function spawnPokemonAuto() {
     targets.push(object);
   }
 
-  // console.log(targets);
+  console.log('targets');
+  console.log(targets);
 
   for (let j = 0; j < targets.length; j++) {
-    console.log("model" + j);
-    const model = await loadData()
+    // console.log("model" + j);
+    const data = await loadData();
+    const model = data.model;
     if (model) {
       model.position.copy(targets[j].position);
       // console.log(targets[j].position);
 
       model.lookAt(camera_position);
+      model.name = data.name;
       scene.add(model);
       listModelPokemon.push(model)
+      console.log(model.position);
     }
   }
-  console.log(listModelPokemon)
+  // console.log(listModelPokemon)
 }
 
 function onSelectPokemon() {
+  // console.log(listModelPokemon)
+
+  if (listModelPokemon.length === 0) {
+    spawnPokemonAuto()
+  }
+  else {
+    raycaster.setFromCamera(pointer, camera);
+    const intersects = raycaster.intersectObjects(listModelPokemon, true);
+    console.log("intersects:", intersects.length);
+    if (intersects.length === 0) return;
+    let closestPokemon: Object3D | null = null;
+    let closestDistance = Infinity;
+    for (const hit of intersects) {
+      const pokemon = getPokemon(hit.object);
+      if (!pokemon) continue;
+      if (hit.distance < closestDistance) {
+        closestDistance = hit.distance;
+        closestPokemon = pokemon;
+      }
+    }
+    if (closestPokemon) {
+      console.log("Pokemon sélectionné :", closestPokemon.name);
+    }
+  }
 }
 
+function getPokemon(obj: Object3D): Object3D | null {
+  let current: Object3D | null = obj;
+  while (current) {
+    if (listModelPokemon.includes(current)) {
+      return current;
+    }
+    current = current.parent;
+  }
 
-
-function try_onClick(event: MouseEvent) {
-  raycaster.setFromCamera(pointer, camera);
-
-  const intersects = raycaster.intersectObjects(listModelPokemon, true);
+  return null;
 }
+
