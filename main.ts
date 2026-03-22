@@ -63,6 +63,7 @@ let hitTestSource: XRHitTestSource | null = null;
 let hitTestSourceRequested = false;
 
 let lstPokemon: string[] = [];
+let pokemonAchercher: String = ""
 
 let raycaster = new Raycaster();
 // let INTERSECTED: any;
@@ -78,10 +79,14 @@ let font: Font;
 const loader = new TTFLoader();
 let currentText = "";
 
+let score = 0;
+let lives = 3;
+let gameOver = false;
+
 function fontLoad() {
   loader.load('assets/fonts/kenpixel.ttf', function (json) {
     font = new Font(json);
-    createText("Bienvenue dans le monde de la réalité augmentée !\n Appuyez pour faire apparaître des pokémons !");
+    createText(" Appuyez pour faire apparaitre les pokemons !");
   });
 }
 fontLoad();
@@ -329,6 +334,9 @@ function randomPokemon(): string {
 
 
 async function spawnPokemonAuto() {
+  if (listModelPokemon.length > 0) {
+    return;
+  }
   console.log("rentré");
   const nb_pokemon = sameTimeNumberPokemon; // nombre de pokemons
   const radius = 1.5;                  // rayon de la sphère
@@ -347,8 +355,8 @@ async function spawnPokemonAuto() {
     targets.push(object);
   }
 
-  console.log('targets');
-  console.log(targets);
+  // console.log('targets');
+  // console.log(targets);
 
   for (let j = 0; j < targets.length; j++) {
     // console.log("model" + j);
@@ -366,10 +374,11 @@ async function spawnPokemonAuto() {
       scene.add(model);
       listModelPokemon.push(model)
       listModelPokemonNames.push(data.name);
-      console.log(model.position);
+      // console.log(model.position);
     }
   }
   // console.log(listModelPokemon)
+  pokemonAchercher = randomName()
 }
 
 function addBoundingBoxHelper(model: Object3D) {
@@ -391,16 +400,51 @@ function addBoundingBoxHelper(model: Object3D) {
 }
 
 function onSelectPokemon() {
+
   if (listModelPokemon.length === 0) {
     spawnPokemonAuto();
     createText("");
+    return;
+  }
+  if (pokemonAchercher === "") {
     return;
   }
   const ray = getCameraRay();
   const closest = getClosestPokemonToRay(ray, 1.0);
   if (closest) {
     console.log("Pokemon sélectionné :", closest.name);
-  } else {
+    console.log("Pokemon à chercher :", pokemonAchercher);
+    if (closest.name == pokemonAchercher) {
+      score += 1;
+      scene.remove(closest);
+      const modelIndex = listModelPokemon.indexOf(closest);
+      if (modelIndex > -1) {
+        listModelPokemon.splice(modelIndex, 1);
+      }
+      const nameIndex = listModelPokemonNames.indexOf(closest.name);
+      if (nameIndex > -1) {
+        listModelPokemonNames.splice(nameIndex, 1);
+      }
+      pokemonAchercher = "";
+      if (listModelPokemonNames.length === 0) {
+        createText("Bravo ! Tu as trouvE tous les pokemons !");
+        return;
+      }
+      pokemonAchercher = randomName();
+      updateHUD();
+    }
+    else {
+      lives -= 1;
+      if (lives <= 0) {
+        gameOver = true;
+        updateHUD();
+        return;
+      }
+      updateHUD("Mauvais pokemon ! \n");
+    }
+  }
+
+  else {
     console.log("Aucun pokemon assez proche de la visée");
   }
 }
@@ -473,3 +517,30 @@ function createText(text: string): void {
   camera.add(textMesh);
 }
 
+
+function randomName(): String {
+  console.log(listModelPokemonNames);
+  if (listModelPokemonNames.length === 0) {
+    return "";
+  }
+  const index = Math.floor(Math.random() * listModelPokemonNames.length);
+  createText("Trouve " + listModelPokemonNames[index] + " !");
+
+  return listModelPokemonNames[index];
+}
+
+function updateHUD(message: string = ""): void {
+  if (gameOver) {
+    createText(`Perdu ! Score: ${score}`);
+    return;
+  }
+
+  if (listModelPokemonNames.length === 0 && listModelPokemon.length >= 0) {
+    createText(`Bravo ! Score: ${score} Vies: ${lives}`);
+    return;
+  }
+
+  const prefix = message ? `${message}` : "";
+  const target = pokemonAchercher ? `Trouve ${pokemonAchercher}` : "";
+  createText(`${prefix}${target} \nscore: ${score}  vies: ${lives}`);
+}

@@ -1,5 +1,8 @@
 import { PerspectiveCamera, Scene, WebGLRenderer, BoxGeometry, Mesh, Raycaster, Vector2, Box3, Vector3, Object3D, MeshBasicMaterial, HemisphereLight, Quaternion, RingGeometry, } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { TTFLoader } from 'three/addons/loaders/TTFLoader.js';
+import { Font } from 'three/addons/loaders/FontLoader.js';
+import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 import { ARButton } from 'three/addons/webxr/ARButton.js';
 let container;
 let camera;
@@ -12,13 +15,28 @@ let pokModel;
 let hitTestSource = null;
 let hitTestSourceRequested = false;
 let lstPokemon = [];
+let pokemonAchercher = "";
 let raycaster = new Raycaster();
-let INTERSECTED;
+// let INTERSECTED: any;
 let pointer = new Vector2(0, 0);
 let sameTimeNumberPokemon = 8;
 let targets = [];
 let listModelPokemon = [];
 let listModelPokemonNames = [];
+let textMesh = null;
+let font;
+const loader = new TTFLoader();
+let currentText = "";
+let score = 0;
+let lives = 3;
+let gameOver = false;
+function fontLoad() {
+    loader.load('assets/fonts/kenpixel.ttf', function (json) {
+        font = new Font(json);
+        createText(" Appuyez pour faire apparaitre les pokemons !");
+    });
+}
+fontLoad();
 async function listPokemonLoad() {
     const response = await fetch("assets/lst_pokemon.txt");
     const text = await response.text();
@@ -38,6 +56,7 @@ function init() {
     document.body.appendChild(container);
     scene = new Scene();
     camera = new PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+    scene.add(camera);
     const light = new HemisphereLight(0xffffff, 0xbbbbff, 3);
     light.position.set(0.5, 1, 0.25);
     scene.add(light);
@@ -129,10 +148,7 @@ function animate(timestamp, frame) {
         }
         // intersection detection
         raycaster.setFromCamera(pointer, camera);
-        const intersects = raycaster.intersectObjects(listModelPokemon, true);
-        if (intersects.length > 0) {
-            const pokemon = getPokemon(intersects[0].object);
-        }
+        // const intersects = raycaster.intersectObjects(listModelPokemon, true);
         // if (intersects.length > 0) {
         //   if (INTERSECTED != intersects[0].object) {
         //     if (INTERSECTED) INTERSECTED.material.emissive.setHex(INTERSECTED.currentHex);
@@ -205,6 +221,9 @@ function randomPokemon() {
     return lstPokemon[randomIndex];
 }
 async function spawnPokemonAuto() {
+    if (listModelPokemon.length > 0) {
+        return;
+    }
     console.log("rentré");
     const nb_pokemon = sameTimeNumberPokemon; // nombre de pokemons
     const radius = 1.5; // rayon de la sphère
@@ -221,8 +240,8 @@ async function spawnPokemonAuto() {
         object.lookAt(camera_position);
         targets.push(object);
     }
-    console.log('targets');
-    console.log(targets);
+    // console.log('targets');
+    // console.log(targets);
     for (let j = 0; j < targets.length; j++) {
         // console.log("model" + j);
         const data = await loadData();
@@ -231,25 +250,32 @@ async function spawnPokemonAuto() {
             model.position.copy(targets[j].position);
             // console.log(targets[j].position);
             model.lookAt(camera_position);
+            model.updateMatrixWorld(true);
             addBoundingBoxHelper(model);
+            model.updateMatrixWorld(true);
             model.name = data.name;
             scene.add(model);
             listModelPokemon.push(model);
-            console.log(model.position);
+            listModelPokemonNames.push(data.name);
+            // console.log(model.position);
         }
     }
     // console.log(listModelPokemon)
+    pokemonAchercher = randomName();
 }
 function addBoundingBoxHelper(model) {
     model.updateWorldMatrix(true, true);
     const worldBox = new Box3().setFromObject(model);
     const worldCenter = worldBox.getCenter(new Vector3());
     const size = worldBox.getSize(new Vector3());
+    const hitboxScale = 3.0; // augmente si besoin
+    size.multiplyScalar(hitboxScale);
     const geometry = new BoxGeometry(size.x, size.y, size.z);
     const material = new MeshBasicMaterial({
-        visible: true // test
+        visible: false
     });
     const mesh = new Mesh(geometry, material);
+    mesh.name = "__hitbox__";
     const localCenter = model.worldToLocal(worldCenter.clone());
     mesh.position.copy(localCenter);
     model.add(mesh);
@@ -257,34 +283,70 @@ function addBoundingBoxHelper(model) {
 function onSelectPokemon() {
     if (listModelPokemon.length === 0) {
         spawnPokemonAuto();
+        createText("");
+        return;
+    }
+    if (pokemonAchercher === "") {
         return;
     }
     const ray = getCameraRay();
-    console.log("origin", ray.ray.origin);
-    console.log("direction", ray.ray.direction);
-    for (const p of listModelPokemon) {
-        const pos = new Vector3();
-        p.getWorldPosition(pos);
-        console.log(p.name, pos);
-    }
-    const intersects = ray.intersectObjects(listModelPokemon, true);
-    console.log("intersects:", intersects.length);
-    if (intersects.length === 0)
-        return;
-    const closest = getPokemon(intersects[0].object);
+    const closest = getClosestPokemonToRay(ray, 1.0);
     if (closest) {
         console.log("Pokemon sélectionné :", closest.name);
+        console.log("Pokemon à chercher :", pokemonAchercher);
+        if (closest.name == pokemonAchercher) {
+            score += 1;
+            scene.remove(closest);
+            const modelIndex = listModelPokemon.indexOf(closest);
+            if (modelIndex > -1) {
+                listModelPokemon.splice(modelIndex, 1);
+            }
+            const nameIndex = listModelPokemonNames.indexOf(closest.name);
+            if (nameIndex > -1) {
+                listModelPokemonNames.splice(nameIndex, 1);
+            }
+            pokemonAchercher = "";
+            if (listModelPokemonNames.length === 0) {
+                createText("Bravo ! Tu as trouvE tous les pokemons !");
+                return;
+            }
+            pokemonAchercher = randomName();
+            updateHUD();
+        }
+        else {
+            lives -= 1;
+            if (lives <= 0) {
+                gameOver = true;
+                updateHUD();
+                return;
+            }
+            updateHUD("Mauvais pokemon ! \n");
+        }
+    }
+    else {
+        console.log("Aucun pokemon assez proche de la visée");
     }
 }
-function getPokemon(obj) {
-    let current = obj;
-    while (current) {
-        if (listModelPokemon.includes(current)) {
-            return current;
+function getClosestPokemonToRay(ray, maxDistance = 0.8) {
+    let closestPokemon = null;
+    let closestDistance = Infinity;
+    const origin = ray.ray.origin;
+    const direction = ray.ray.direction;
+    for (const pokemon of listModelPokemon) {
+        const pos = new Vector3();
+        pokemon.getWorldPosition(pos);
+        const toPokemon = pos.clone().sub(origin);
+        const projection = toPokemon.dot(direction);
+        if (projection <= 0)
+            continue;
+        const closestPointOnRay = origin.clone().add(direction.clone().multiplyScalar(projection));
+        const distanceToRay = pos.distanceTo(closestPointOnRay);
+        if (distanceToRay < closestDistance && distanceToRay <= maxDistance) {
+            closestDistance = distanceToRay;
+            closestPokemon = pokemon;
         }
-        current = current.parent;
     }
-    return null;
+    return closestPokemon;
 }
 function getCameraRay() {
     const ray = new Raycaster();
@@ -295,5 +357,62 @@ function getCameraRay() {
     direction.applyQuaternion(xrCamera.getWorldQuaternion(new Quaternion())).normalize();
     ray.set(origin, direction);
     return ray;
+}
+function createText(text) {
+    if (!font)
+        return;
+    if (currentText === text)
+        return;
+    currentText = text;
+    if (textMesh) {
+        camera.remove(textMesh);
+        textMesh.geometry.dispose();
+        const mat = textMesh.material;
+        if (Array.isArray(mat)) {
+            mat.forEach(m => m.dispose());
+        }
+        else {
+            mat.dispose();
+        }
+        textMesh = null;
+    }
+    const geometry = new TextGeometry(text, {
+        font: font,
+        size: 0.035,
+        depth: 0.005,
+        curveSegments: 8,
+    });
+    geometry.computeBoundingBox();
+    const box = geometry.boundingBox;
+    if (box) {
+        const center = box.getCenter(new Vector3());
+        geometry.translate(-center.x, -center.y, -center.z);
+    }
+    const material = new MeshBasicMaterial({ color: 0xffffff });
+    textMesh = new Mesh(geometry, material);
+    textMesh.position.set(0, 0, -0.5); // devant la caméra
+    camera.add(textMesh);
+}
+function randomName() {
+    console.log(listModelPokemonNames);
+    if (listModelPokemonNames.length === 0) {
+        return "";
+    }
+    const index = Math.floor(Math.random() * listModelPokemonNames.length);
+    createText("Trouve " + listModelPokemonNames[index] + " !");
+    return listModelPokemonNames[index];
+}
+function updateHUD(message = "") {
+    if (gameOver) {
+        createText(`Perdu ! Score: ${score}`);
+        return;
+    }
+    if (listModelPokemonNames.length === 0 && listModelPokemon.length >= 0) {
+        createText(`Bravo ! Score: ${score} Vies: ${lives}`);
+        return;
+    }
+    const prefix = message ? `${message}` : "";
+    const target = pokemonAchercher ? `Trouve ${pokemonAchercher}` : "";
+    createText(`${prefix}${target} \nscore: ${score}  vies: ${lives}`);
 }
 //# sourceMappingURL=main.js.map
