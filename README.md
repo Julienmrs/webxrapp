@@ -1,135 +1,61 @@
-# three_vite_xr_ts
-THREE.js + WebXR template using [Vite](https://vitejs.dev).
-
-Allows testing and modifying [official THREE.js WebXR examples](https://threejs.org/examples/?q=webxr) locally, at lightning speed.
-
-## Batteries included
-
-Pre-configured to support :
-
-- WebXR initialization
-- glTF file loading
-- ammo.js wasm physics library
-  - which is fast, but you might consider using the excellent and simpler [Cannon-es](https://fdoganis.github.io/slides/cannon.html) instead
-- VSCode launch scripts
-- THREE.js type definitions : for IntelliSense in VS Code
-- recommended VS Code extensions
-- deployment
-
-Have a look at vite.config.js and customize it to your needs (additional libraries, file formats etc.).
-
-## Installation
-
-Install [Node.js](https://nodejs.org)
-
-- Clone or download repo
-- run `npm install` : fetches and install all dependencies
-- `npm run dev` : launches a server and opens your browser in `https://localhost:5173` by default
-  - Edit your code : your changes are reflected instantly!
-- `npm run build` : packages all code and resources into the `dist` folder, ready for deployment.
-
-## HTTPS
-
-HTTPS is required to use the WebXR API
+# Mini jeu en réalité augmenté codé en Three.js + TypeScript où le joueur doit reconnaître des Pokémon 3D.
 
 
-### Using Cloudflare Tunnel for free without an account or a domain (recommended)
+Une Version web est disponible avec le lien https://julienmrs.github.io/webxrapp/
+--
+##  Pour lancer le projet en local
 
-  - Install [Homebrew](https://brew.sh)
+### Prérequis
+
+- Node.js (https://nodejs.org)
+- npm (installé avec Node)
+
+Vérifier l’installation :
 
 ```bash
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+node -v
+npm -v
 ```
-
-then follow instructions
-
-
+### Installation du projet
+Dans le dossier du projet (après avoir cloné ou téléchargé le dépôt), installez les dépendances :
 ```bash
-echo >> /Users/XXX/.zprofile
-
-echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> /Users/XXX/.zprofile
-
-eval "$(/opt/homebrew/bin/brew shellenv)"
+npm install
 ```
 
-  - **[Install `cloudflared`](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/)**
-
+Lors du premier lancement, lancez la commande :
 ```bash
-brew install cloudflared
+npm run build; npm run dev
 ```
-- run your app locally
 
+Ensuite, pour les lancements suivants:
 ```bash
 npm run dev
 ```
 
-- run `cloudflared` tunnel
-
-```bash
-cloudflared tunnel --url http://localhost:5173/
-```
-
-This will create a random temporary address ending in `*.trycloudflare.com`
-
-You can share this address by sending a link or by generating a QR code (very useful for mobile devices and some XR headsets).
-
-### Persistent link
-
-If you want more persistence, you should register a domain name, or connect your github account to [Cloudflare Pages](https://pages.cloudflare.com) for free.
-
-Alternatively, you could simply [use GitHub Pages to host your application persistently](https://sbcode.net/threejs/github-pages/).
-
-### Tunneling alternatives
-
-Check these tunneling alternatives such as `ngrok` or `zrok` for simple personal projects, use [tunneling solutions](https://github.com/anderspitman/awesome-tunneling) 
+## Déroulement d'une partie
+Au lancement on est accueilli par une phrase nous invitant à appuyer sur l'écran pour lancer le jeu, une fois cela fait la première manche commence.
+Le principe du jeu est de reconnaitre les pokemons (noms en anglais) à l'aide de leur modèles 3D, certains ont des modèles en couleurs normales, d'autre ont des couleurs alternatives (tadmorv) et d'autre sont en noir.
+Les différents modèle sont placés dans une sphère tout autour du joueur, pour valider une tentative, il faut regarder un pokémon et toucher son écran.
+Si le modèle correspond avec le nom demandé, le modèle disparait et on passe au prochain pokemon de la manche.
+Il y a initialement 3 vies au lancement du jeu, à chaque erreur on perd une vie, la partie s'arrète quand le nombre de vies atteint 0. 
+Pour finir une manche il faut réussir à associer correctement tous les pokémons environnant à leur nom, en faisant cela on remporte une vie supplémentaire et on peut lancer une nouvelle manche.  
+Chaque nouvelle manche contient deux modèles supplémentaire à la manche précédente, le jeu commence à 5 modèles
+La partie se déroule en plusieurs manches avec une difficulté croissante, il y a de plus en plus de pokemons à trouver soit plus de chance de se tromper, le but étant de faire le score le plus haut s'en perdre la partie.
 
 
-### Manual HTTPS setup
-
-In order to use `https`, copy your certificates to the `.cert` folder, and change the `serve` command to:
-
-`"serve": "http-server dist -S -C .cert/cert.pem -K .cert/key.pem`
-
-## Deploying the App with GitHub Pages
-
-(original: https://github.com/meta-quest/webxr-first-steps?tab=readme-ov-file#build-and-deploy)
-
-This repository includes a ready-to-use GitHub Actions workflow located at `.github/workflows/deploy.yml`, which automates both the build and deployment to GitHub Pages. Once enabled, every time you push changes to the `main` branch, a new build will automatically be deployed.
-
-#### Steps to Enable GitHub Pages Deployment:
-
-0. **IMPORTANT: Set the `base` variable** in `vite.config.js` (default name `/three_vite_xr`) to the actual name of your repository. Your app will be deployed to https://[GITUSERNAME].github.io/[REPOSITORY_NAME] (for example https://fdoganis.github.io/three_vite_xr)
-1. **Fork this repository** to your own GitHub account.
-2. Navigate to your forked repository’s **Settings**.
-3. Scroll down to the **Pages** section.
-4. Under **Build and Deployment**, change the **Source** to **GitHub Actions**.
-
-Once this is set, GitHub Actions will handle the build and deployment process automatically. Any time you push changes to the `main` branch, the app will be built and deployed to GitHub Pages without any additional manual steps.
-
-You can monitor the status of the deployment job or manually re-run it via the **Actions** tab in your GitHub repository.
-
-### Deploying to Your Own Hosting Solution
-
-If you prefer to host the app yourself, you’ll need to manually build the app and then deploy the generated files to your hosting provider.
-
-To generate the build, run the following command:
-
-```bash
-npm run build
-```
-
-This will create a `dist` folder containing the static files for the app. You can then upload these files to your hosting platform of choice.
-
-
-# Credits
-
-- XR enhanced version of the original ```three_vite``` template : https://github.com/fdoganis/three_vite (MIT License)
+## Exemple d'interraction:
   
-- THREE.js WebXR code inspired by https://threejs.org/examples/webxr_ar_cones.html (MIT License)
+  #### Gameplay normal on regarde le modèle qu'on pense correspondre avec le nom demandé:
+  <img width="351" height="330" alt="image" src="https://github.com/user-attachments/assets/52ae3c35-f653-4471-a0bf-15880c0e96d4" /> \
+  Puis on touche l'écran pour valider il y a alors deux possibiltés :          
+ Bonne réponse le modèle disparaît et on remporte 1 point     
+ <img width="319" height="244" alt="image" src="https://github.com/user-attachments/assets/39b0a3c0-121f-4865-9ae2-f0f31c38bad8" />    
 
-- Test model (red cube) from https://github.com/cx20/gltf-test/tree/master/sampleModels/Box (CC BY License)
+Mauvaise réponse on perd une vie, s'il reste des vies on continue à essayer de chercher le bon pokémon    
+<img width="303" height="331" alt="image" src="https://github.com/user-attachments/assets/47a824a7-8b20-4d40-9f43-f53c96ab0de1" />
+    
 
-- Some very interesting features (emulator, github pages deployment) have been borrowed from https://github.com/meta-quest/webxr-first-steps  (MIT License)
+Sinon c'est la Fin du jeu et le score s'affiche.   
+<img width="253" height="297" alt="image" src="https://github.com/user-attachments/assets/ff2b3c8f-10c0-4a5a-9d30-8e127bd68b14" />
 
-  - Make sure to check this excellent tutorial out! Even if it is mostly focused on VR, it is a great introduction on how to combine WebXR with THREE.js.
-  - See [Deployment Instructions](https://github.com/meta-quest/webxr-first-steps?tab=readme-ov-file#build-and-deploy)
+
