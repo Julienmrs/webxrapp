@@ -86,7 +86,7 @@ let gameOver = false;
 function fontLoad() {
   loader.load('assets/fonts/kenpixel.ttf', function (json) {
     font = new Font(json);
-    createText(" Appuyez pour faire apparaitre les pokemons !");
+    createText(" Appuyez \n pour commencez !");
   });
 }
 fontLoad();
