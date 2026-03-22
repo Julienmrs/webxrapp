@@ -378,8 +378,8 @@ function createText(text) {
     }
     const geometry = new TextGeometry(text, {
         font: font,
-        size: 0.035,
-        depth: 0.005,
+        size: 0.020,
+        depth: 0.003,
         curveSegments: 8,
     });
     geometry.computeBoundingBox();
@@ -404,11 +404,11 @@ function randomName() {
 }
 function updateHUD(message = "") {
     if (gameOver) {
-        createText(`Perdu ! Score: ${score}`);
+        createText(`Perdu ! \nScore: ${score}`);
         return;
     }
     if (listModelPokemonNames.length === 0 && listModelPokemon.length >= 0) {
-        createText(`Bravo ! Score: ${score} Vies: ${lives}`);
+        createText(`Score: ${score} Vies: ${lives}`);
         return;
     }
     const prefix = message ? `${message}` : "";
