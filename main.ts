@@ -86,7 +86,7 @@ let gameOver = false;
 function fontLoad() {
   loader.load('assets/fonts/kenpixel.ttf', function (json) {
     font = new Font(json);
-    createText(" Appuyez \n pour commencez !");
+    createText(" Appuyez pour \ncommencez !");
   });
 }
 fontLoad();
