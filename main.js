@@ -19,7 +19,7 @@ let pokemonAchercher = "";
 let raycaster = new Raycaster();
 // let INTERSECTED: any;
 let pointer = new Vector2(0, 0);
-let sameTimeNumberPokemon = 8;
+let sameTimeNumberPokemon = 5;
 let targets = [];
 let listModelPokemon = [];
 let listModelPokemonNames = [];
@@ -320,7 +320,7 @@ function onSelectPokemon() {
                 updateHUD();
                 return;
             }
-            updateHUD("Mauvais pokemon ! \n");
+            updateHUD("Erreur! \n");
         }
     }
     else {

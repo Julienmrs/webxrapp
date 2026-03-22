@@ -69,7 +69,7 @@ let raycaster = new Raycaster();
 // let INTERSECTED: any;
 let pointer = new Vector2(0, 0);
 
-let sameTimeNumberPokemon = 8
+let sameTimeNumberPokemon = 5;
 let targets: Object3D[] = [];
 let listModelPokemon: Object3D[] = [];
 let listModelPokemonNames: String[] = [];
@@ -270,7 +270,7 @@ function animate(
 }
 
 function gltfReader(gltf: GLTF) {
-  const model = convertGLTFModel(gltf, 1);
+  const model = convertGLTFModel(gltf, 0.8);
   model.traverse((obj) => {
     if ((obj as Mesh).isMesh) {
       const mesh = obj as Mesh;
@@ -386,7 +386,7 @@ function addBoundingBoxHelper(model: Object3D) {
   const worldBox = new Box3().setFromObject(model);
   const worldCenter = worldBox.getCenter(new Vector3());
   const size = worldBox.getSize(new Vector3());
-  const hitboxScale = 3.0; // augmente si besoin
+  const hitboxScale = 3.0;
   size.multiplyScalar(hitboxScale);
   const geometry = new BoxGeometry(size.x, size.y, size.z);
   const material = new MeshBasicMaterial({
@@ -427,7 +427,9 @@ function onSelectPokemon() {
       }
       pokemonAchercher = "";
       if (listModelPokemonNames.length === 0) {
-        createText("Bravo ! Tu as trouvE tous les pokemons !");
+        createText("Bravo ! \n Tu as trouvE tous les \n pokemons de ce niveau !");
+        lives += 1;
+        sameTimeNumberPokemon += 2;
         return;
       }
       pokemonAchercher = randomName();
@@ -440,7 +442,7 @@ function onSelectPokemon() {
         updateHUD();
         return;
       }
-      updateHUD("Mauvais pokemon ! \n");
+      updateHUD("Erreur! \n");
     }
   }
 
