@@ -165,7 +165,7 @@ function animate(timestamp, frame) {
     renderer.render(scene, camera);
 }
 function gltfReader(gltf) {
-    const model = convertGLTFModel(gltf, 1);
+    const model = convertGLTFModel(gltf, 0.8);
     model.traverse((obj) => {
         if (obj.isMesh) {
             const mesh = obj;
@@ -268,7 +268,7 @@ function addBoundingBoxHelper(model) {
     const worldBox = new Box3().setFromObject(model);
     const worldCenter = worldBox.getCenter(new Vector3());
     const size = worldBox.getSize(new Vector3());
-    const hitboxScale = 3.0; // augmente si besoin
+    const hitboxScale = 3.0;
     size.multiplyScalar(hitboxScale);
     const geometry = new BoxGeometry(size.x, size.y, size.z);
     const material = new MeshBasicMaterial({
@@ -307,7 +307,9 @@ function onSelectPokemon() {
             }
             pokemonAchercher = "";
             if (listModelPokemonNames.length === 0) {
-                createText("Bravo ! Tu as trouvE tous les pokemons !");
+                createText("Bravo ! \n Tu as trouvE tous les \n pokemons de ce niveau !");
+                lives += 1;
+                sameTimeNumberPokemon += 2;
                 return;
             }
             pokemonAchercher = randomName();

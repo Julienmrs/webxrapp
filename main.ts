@@ -427,7 +427,7 @@ function onSelectPokemon() {
       }
       pokemonAchercher = "";
       if (listModelPokemonNames.length === 0) {
-        createText("Bravo ! \n Tu as trouvE tous les \n pokemons de ce niveau !");
+        createText("Bravo ! \nTu as trouvE tous les \n pokemons de ce niveau !");
         lives += 1;
         sameTimeNumberPokemon += 2;
         return;
@@ -515,7 +515,7 @@ function createText(text: string): void {
   }
   const material = new MeshBasicMaterial({ color: 0xffffff });
   textMesh = new Mesh(geometry, material);
-  textMesh.position.set(0, 0, -0.5); // devant la caméra
+  textMesh.position.set(0, 0.1, -0.5); // devant la caméra
   camera.add(textMesh);
 }
 
